@@ -74,6 +74,32 @@ func ( this_block Block) Hash() string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func ( this_chain Chain) IsChainValid ( ) bool {
+	previous_block := this_chain.GetPreviousBlock()
+	block_index := 1
+    h := sha256.New()
+	for {
+		if(block_index > len(this_chain)) {
+			return true
+		}
+		block := this_chain[block_index]
+		if block.PreviousHash != previous_block.Hash() {
+			return false
+		}
+		previous_proof := previous_block.Proof
+		proof := block.Proof
+		operation := math.Exp(float64(proof)) - math.Exp(float64(previous_proof))
+		operation_result := strconv.Itoa(int(operation))
+		h.Write([]byte(operation_result))
+		hash_operation := hex.EncodeToString(h.Sum(nil))
+		if hash_operation[:4] != "0000" {
+			return false
+		}
+		previous_block = block
+		block_index++
+	}
+}
+
 func main()  {
 	var blockchain Chain
 	block := blockchain.CreateBlock(11,"testing")
