@@ -8,6 +8,7 @@ import (
     "encoding/hex"
 	"math"
 	"encoding/json"
+	"net/http"
 )
 
 type Block struct {
@@ -101,19 +102,46 @@ func ( this_chain Chain) IsChainValid ( ) bool {
 }
 
 func main()  {
+	port := ":8000"
 	var blockchain Chain
-	block := blockchain.CreateBlock(11,"testing")
-	blockchain = append(blockchain, block)
-	block2 := blockchain.CreateBlock(23, block.PreviousHash)
-	blockchain = append(blockchain, block2)
-	block3 := blockchain.CreateBlock(15, "Testing3")
-	blockchain = append(blockchain, block3)
 
-	fmt.Println("último")
-	ultimoBlock :=  blockchain.GetPreviousBlock()
-	fmt.Println(ultimoBlock.Hash())
+	blockGenesys := blockchain.CreateBlock(1,"0")
+	blockchain = append(blockchain, blockGenesys)
 
-	nonce := blockchain.ProofOfWork(15)
+	http.HandleFunc("/mine_block",func(response http.ResponseWriter, request *http.Request){
 
-	fmt.Println(nonce)
+		previous_block := blockchain.GetPreviousBlock()
+		previous_proof := previous_block.Proof
+		proof          := blockchain.ProofOfWork(previous_proof)
+		previous_hash  := previous_block.Hash()
+		block := blockchain.CreateBlock(proof,previous_hash)
+		blockchain = append(blockchain, block)
+		json.NewEncoder(response).Encode(block)
+	})
+
+	http.HandleFunc("/get_chain",func(response http.ResponseWriter, request *http.Request){
+
+		previous_block := blockchain.GetPreviousBlock()
+		previous_proof := previous_block.Proof
+		proof          := blockchain.ProofOfWork(previous_proof)
+		previous_hash  := previous_block.Hash()
+		block := blockchain.CreateBlock(proof,previous_hash)
+		blockchain = append(blockchain, block)
+		json.NewEncoder(response).Encode(block)
+	})
+
+	http.HandleFunc("/is_valid",func(response http.ResponseWriter, request *http.Request){
+
+		previous_block := blockchain.GetPreviousBlock()
+		previous_proof := previous_block.Proof
+		proof          := blockchain.ProofOfWork(previous_proof)
+		previous_hash  := previous_block.Hash()
+		block := blockchain.CreateBlock(proof,previous_hash)
+		blockchain = append(blockchain, block)
+		json.NewEncoder(response).Encode(block)
+	})
+
+	fmt.Print("Listen in http://localhost")
+	fmt.Println(port)
+	http.ListenAndServe(port, nil)
 }
