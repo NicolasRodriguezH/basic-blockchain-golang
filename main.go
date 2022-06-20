@@ -7,6 +7,7 @@ import (
 	"strconv"
     "encoding/hex"
 	"math"
+	"encoding/json"
 )
 
 type Block struct {
@@ -62,6 +63,17 @@ func ( this_chain Chain) ProofOfWork ( _previous_proof int) int {
 	return new_proof
 }
 
+func ( this_block Block) Hash() string {
+    h := sha256.New()
+	block_json, err := json.Marshal(this_block)
+
+	if err != nil {
+		panic(err)
+	}
+	h.Write([]byte(block_json))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 func main()  {
 	var blockchain Chain
 	block := blockchain.CreateBlock(11,"testing")
@@ -73,7 +85,7 @@ func main()  {
 
 	fmt.Println("último")
 	ultimoBlock :=  blockchain.GetPreviousBlock()
-	fmt.Println(ultimoBlock)
+	fmt.Println(ultimoBlock.Hash())
 
 	nonce := blockchain.ProofOfWork(15)
 
