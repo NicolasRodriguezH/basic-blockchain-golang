@@ -9,6 +9,7 @@ import (
 	"math"
 	"encoding/json"
 	"net/http"
+	"io"
 )
 
 type Block struct {
@@ -120,25 +121,16 @@ func main()  {
 	})
 
 	http.HandleFunc("/get_chain",func(response http.ResponseWriter, request *http.Request){
-
-		previous_block := blockchain.GetPreviousBlock()
-		previous_proof := previous_block.Proof
-		proof          := blockchain.ProofOfWork(previous_proof)
-		previous_hash  := previous_block.Hash()
-		block := blockchain.CreateBlock(proof,previous_hash)
-		blockchain = append(blockchain, block)
-		json.NewEncoder(response).Encode(block)
+		json.NewEncoder(response).Encode(blockchain)
 	})
 
 	http.HandleFunc("/is_valid",func(response http.ResponseWriter, request *http.Request){
-
-		previous_block := blockchain.GetPreviousBlock()
-		previous_proof := previous_block.Proof
-		proof          := blockchain.ProofOfWork(previous_proof)
-		previous_hash  := previous_block.Hash()
-		block := blockchain.CreateBlock(proof,previous_hash)
-		blockchain = append(blockchain, block)
-		json.NewEncoder(response).Encode(block)
+		is_valid := blockchain.IsChainValid()
+		if is_valid {
+			io.WriteString(response, "Blockchain válida")
+		}else {
+			io.WriteString(response, "Blockchain inválida")
+		}
 	})
 
 	fmt.Print("Listen in http://localhost")
