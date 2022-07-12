@@ -29,12 +29,15 @@ type Blockchain interface {
 	IsChainValid()
 }
 
-func ( this_chain  Chain) CreateBlock (_proof int, _previousHash string) Block {
+func ( this_chain  *Chain) CreateBlock (_proof int, _previousHash string) Block {
 	var block Block
-	block.Index = len(this_chain) + 1
+	block.Index = len(*this_chain) + 1
 	block.TimeStamp = time.Now().String()
 	block.Proof = _proof
 	block.PreviousHash = _previousHash
+
+
+	*this_chain = append(*this_chain, block)
 	return block
 }
 
@@ -51,10 +54,9 @@ func ( this_chain Chain) ProofOfWork ( _previous_proof int) int {
 		if check_proof {
 			break
 		}
-		operation := math.Exp(float64(new_proof)) - math.Exp(float64(_previous_proof))
+		operation := (math.Exp(float64(new_proof * len(this_chain)))) / (math.Exp(float64(_previous_proof)))
 		operation_result := strconv.Itoa(int(operation))
 		h.Write([]byte(operation_result))
-
 		hash_operation := hex.EncodeToString(h.Sum(nil))
 		if hash_operation[:4] == "0000" {
 			check_proof = true
@@ -78,45 +80,43 @@ func ( this_block Block) Hash() string {
 
 func ( this_chain Chain) IsChainValid ( ) bool {
 	previous_block := this_chain.GetPreviousBlock()
-	block_index := 1
+	block_index := len(this_chain) - 2
     h := sha256.New()
 	for {
-		if(block_index > len(this_chain)) {
-			return true
+		if(block_index < 0) {
+			break
 		}
 		block := this_chain[block_index]
-		if block.PreviousHash != previous_block.Hash() {
+		if block.Hash() != previous_block.PreviousHash {
 			return false
 		}
 		previous_proof := previous_block.Proof
 		proof := block.Proof
-		operation := math.Exp(float64(proof)) - math.Exp(float64(previous_proof))
+		operation := (math.Exp(float64(previous_proof * (block.Index)))) / (math.Exp(float64(proof)))
 		operation_result := strconv.Itoa(int(operation))
 		h.Write([]byte(operation_result))
 		hash_operation := hex.EncodeToString(h.Sum(nil))
 		if hash_operation[:4] != "0000" {
-			return false
+			return true  // false
 		}
 		previous_block = block
-		block_index++
+		block_index--
 	}
+	return true
 }
 
 func main()  {
 	port := ":8000"
 	var blockchain Chain
 
-	blockGenesys := blockchain.CreateBlock(1,"0")
-	blockchain = append(blockchain, blockGenesys)
+	blockchain.CreateBlock(1,"0")
 
 	http.HandleFunc("/mine_block",func(response http.ResponseWriter, request *http.Request){
-
 		previous_block := blockchain.GetPreviousBlock()
 		previous_proof := previous_block.Proof
 		proof          := blockchain.ProofOfWork(previous_proof)
 		previous_hash  := previous_block.Hash()
 		block := blockchain.CreateBlock(proof,previous_hash)
-		blockchain = append(blockchain, block)
 		json.NewEncoder(response).Encode(block)
 	})
 
